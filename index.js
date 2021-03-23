@@ -1,7 +1,7 @@
 const express = require('express')
 var Request = require("request");
 const app = express()
-const port = 443
+const port = 4000
 //{
 //   "id": String, "title": String, "price": {
 //       "currency": String, "amount": Number, "decimals": Number
@@ -9,36 +9,59 @@ const port = 443
 //      “picture”: String, "condition": String, "free_shipping": Boolean
 //      }
 app.get('/items', (req, res) => {
-    const queryParam = req.query.search;
-    let returnValue = {
-        author: {
-            name: 'Guillermo',
-            lastname: 'Forero'
-        },
-        categories: [],
-        items: []
-    }
-    Request.get(`https://api.mercadolibre.com/sites/MLA/search?q=${queryParam}`, (error, response, body) => {
-        const itemsList = JSON.parse(body).results;
-        const tempList = []
-        for (let i = 0; i < 4; i++) {
-            if (itemsList[i]) {
-                tempList.push(
-                    {
-                        id: itemsList[i].id,
-                        title: itemsList[i].title,
-                        price: itemsList[i].price,
-                        picture: itemsList[i].thumbnail,
-                        condition: itemsList[i].condition,
-                        free_shipping: itemsList[i].shipping.free_shipping,
-                    }
-                )
-            }
+    try{
+        let queryParam = req.query.search;
+        if(!queryParam){
+           queryParam = '' 
         }
-        returnValue = { ...returnValue, items: tempList };
-        console.log(tempList);
-        res.send(JSON.stringify(returnValue));
-    });
+        let returnValue = {
+            author: {
+                name: 'Guillermo',
+                lastname: 'Forero'
+            },
+            categories: [],
+            items: []
+        }
+        console.log('query', queryParam.toString())
+        Request.get(`https://api.mercadolibre.com/sites/MLA/search?q=${queryParam.toString()}`, (error, response, body) => {
+            console.log('body', body)
+            try{
+                if(body === 'Bad Request'){
+                    res.statusCode = 500;
+                    res.send(JSON.stringify({
+                        statusCode: 500,
+                        message: 'Bad Request'
+                    }))
+                    throw new Error()
+                }
+                const itemsList = JSON.parse(body).results;
+                const tempList = []
+                for (let i = 0; i < 4; i++) {
+                    if (itemsList[i]) {
+                        tempList.push(
+                            {
+                                id: itemsList[i].id,
+                                title: itemsList[i].title,
+                                price: itemsList[i].price,
+                                picture: itemsList[i].thumbnail,
+                                condition: itemsList[i].condition,
+                                free_shipping: itemsList[i].shipping.free_shipping,
+                            }
+                        )
+                    }
+                }
+                returnValue = { ...returnValue, items: tempList };
+                console.log(tempList);
+                res.send(JSON.stringify(returnValue));   
+            } catch(e) {
+                
+            }
+        });
+    }
+    catch(e) {
+        console.log(e)
+    }
+    
 })
 
 app.get('/items/:id', (req, res) => {
